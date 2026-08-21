@@ -71,6 +71,9 @@ input:disabled{background:#f1f5f9;color:#94a3b8}
 /* ボタン */
 .form-actions,.result-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
 .result-actions{max-width:900px;margin:20px auto 60px;padding:0 16px}
+.consent{flex:1 0 100%;display:flex;gap:9px;align-items:flex-start;font-size:13px;line-height:1.7;
+  color:#334155;background:#f1f5f9;border:1px solid #dbe2ea;border-radius:8px;padding:12px 14px}
+.consent input{margin-top:4px;flex:none;width:16px;height:16px}
 .btn{
   font-family:inherit;font-size:14px;padding:11px 20px;border-radius:8px;cursor:pointer;
   border:1px solid #cbd5e1;background:#fff;color:var(--ink);

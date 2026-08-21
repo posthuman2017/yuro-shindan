@@ -29,6 +29,45 @@ function toast(msg) {
   setTimeout(() => t.classList.remove('show'), 1800);
 }
 
+/* ---------- 回答の送信 ---------- */
+function mailSummary(res) {
+  const ft = FTYPES.find(f => f.id === answers.ftype);
+  const rank = rankOf(res.total);
+  const L = [];
+  L.push(`法人名　　：${answers.orgName || '（未記入）'}`);
+  L.push(`施設名　　：${answers.siteName || '（未記入）'}`);
+  L.push(`ご担当者　：${answers.contactName || '（未記入）'}（${answers.respondent || '—'}）`);
+  L.push(`ご連絡先　：${answers.email || '（未記入）'}`);
+  L.push(`所在地　　：${answers.pref || '—'}`);
+  L.push(`施設種別　：${ft ? ft.label : '—'}${answers.capacity ? ' / 定員 ' + answers.capacity + '名' : ''}`);
+  L.push('');
+  L.push(`総合評価　：${rank.name}（${rank.title}）　総合スコア ${res.total}`);
+  L.push('領域別　　：' + res.radar.map(r => `${r.name} ${r.value}`).join(' / '));
+  L.push(`生成AI　　：${res.aiLevel.name}（${res.aiScaled}/21）${res.shadow ? '　※シャドーAIの兆候あり' : ''}`);
+  if (res.heisetsuRisk !== null) L.push(`併設依存度：囲い込みリスク指数 ${res.heisetsuRisk}`);
+  L.push('');
+  L.push('■ 優先課題');
+  priorities(res).forEach((e, i) => L.push(`${i + 1}. ${e.q.text}　→ ${e.label}`));
+  return L.join('\n');
+}
+
+async function submitAnswers() {
+  if (!SUBMIT_ENDPOINT) return { skipped: true };
+  const res = await fetch(SUBMIT_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({
+      cols: tableCols(),
+      row: tableRow(answers, Date.now()),
+      summary: mailSummary(scoreAll(answers)),
+      org: answers.orgName || '', site: answers.siteName || '',
+    }),
+  });
+  const data = await res.json();
+  if (!data.ok) throw new Error(data.error || 'send failed');
+  return data;
+}
+
 /* ---------- フォーム ---------- */
 function renderForm() {
   const qs = visibleQuestions(answers);
@@ -50,7 +89,10 @@ function renderForm() {
     html += `</section>`;
   }
   html += `<div class="form-actions">
-      <button class="btn primary" id="btnResult">診断結果を見る</button>
+      ${SUBMIT_ENDPOINT ? `<label class="consent"><input type="checkbox" id="consent">
+        ご入力内容を${esc(SUBMIT_RECIPIENT)}および診断担当者へ送信することに同意します。
+        いただいた情報は、本診断の実施とその結果に基づくご提案のためにのみ利用いたします。</label>` : ''}
+      <button class="btn primary" id="btnResult">${SUBMIT_ENDPOINT ? '回答を送信して診断結果を見る' : '診断結果を見る'}</button>
       <button class="btn" id="btnSave">この回答を保存</button>
       <button class="btn ghost" id="btnClear">入力をクリア</button>
     </div>`;
@@ -58,7 +100,7 @@ function renderForm() {
 
   $('#view').addEventListener('change', onInput);
   $('#view').addEventListener('input', onInput);
-  $('#btnResult').onclick = () => { if (!validate()) return; show('result'); };
+  $('#btnResult').onclick = onSubmitClick;
   $('#btnSave').onclick = saveCurrent;
   $('#btnClear').onclick = () => { if (confirm('入力内容をすべて消去します。よろしいですか？')) { answers = {}; editingId = null; renderForm(); } };
 }
@@ -107,6 +149,24 @@ function onInput(ev) {
   updateProgress();
 }
 
+async function onSubmitClick(ev) {
+  if (!validate(true)) return;
+  if (!SUBMIT_ENDPOINT) return show('result');
+  const c = $('#consent');
+  if (!c.checked) { alert('送信への同意にチェックをお願いいたします。'); c.focus(); return; }
+
+  const btn = ev.currentTarget, label = btn.textContent;
+  btn.disabled = true; btn.textContent = '送信しています…';
+  try {
+    await submitAnswers();
+    saveCurrent();
+    show('result');
+  } catch {
+    btn.disabled = false; btn.textContent = label;
+    alert('送信できませんでした。通信環境をご確認のうえ、もう一度お試しください。\n\nお急ぎの場合は、このまま「診断結果」タブを開いていただければ結果をPDFで保存できます。');
+  }
+}
+
 function updateProgress() {
   const scored = visibleQuestions(answers).filter(q => q.domain !== null);
   const done = scored.filter(q => answers[q.id] !== undefined && answers[q.id] !== '').length;
@@ -114,7 +174,18 @@ function updateProgress() {
   const txt = $('.progress-txt'); if (txt) txt.textContent = `診断設問 ${done} / ${scored.length} 問にご回答いただきました`;
 }
 
-function validate() {
+function validate(forSubmit) {
+  if (forSubmit && SUBMIT_ENDPOINT) {
+    const need = [['orgName', '法人名'], ['siteName', '施設名'], ['contactName', 'ご担当者様のお名前'], ['email', 'メールアドレス']];
+    for (const [id, name] of need) {
+      if (!String(answers[id] || '').trim()) {
+        alert(`${name}をご記入ください。`); $('#q-' + id).scrollIntoView({ block: 'center' }); return false;
+      }
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email)) {
+      alert('メールアドレスの形式をご確認ください。'); $('#q-email').scrollIntoView({ block: 'center' }); return false;
+    }
+  }
   if (!answers.ftype) { alert('施設種別をお選びください。'); $('#q-ftype').scrollIntoView({ block: 'center' }); return false; }
   const scored = visibleQuestions(answers).filter(q => q.domain !== null);
   const done = scored.filter(q => answers[q.id] !== undefined && answers[q.id] !== '').length;
@@ -322,27 +393,33 @@ function answerLabel(q, a) {
   return a;
 }
 
-function exportCSV() {
-  const recs = load();
-  if (!recs.length) return alert('保存された診断がありません。');
-  const HEAD_IDS = ['orgName', 'siteName', 'ftype', 'capacity', 'pref'];
-  const detail = QUESTIONS.filter(q => !HEAD_IDS.includes(q.id));
+const HEAD_IDS = ['orgName', 'siteName', 'ftype', 'capacity', 'pref'];
+const detailQuestions = () => QUESTIONS.filter(q => !HEAD_IDS.includes(q.id));
+
+function tableCols() {
   const cols = ['診断日', '法人名', '施設名', '施設種別', '定員', '所在地', '総合評価', '総合スコア'];
   DOMAINS.forEach(d => cols.push(d.name));
   cols.push('生成AIレベル', '生成AI点数', 'AIガバナンス', 'AI実装', '併設リスク指数');
-  detail.forEach(q => cols.push(q.text.slice(0, 30)));
+  detailQuestions().forEach(q => cols.push(q.text.slice(0, 30)));
+  return cols;
+}
 
-  const rows = recs.map(r => {
-    const a = r.answers, res = scoreAll(a);
-    const ft = FTYPES.find(f => f.id === a.ftype);
-    const row = [new Date(r.createdAt).toLocaleDateString('ja-JP'), a.orgName || '', a.siteName || '',
-      ft ? ft.label : '', a.capacity || '', a.pref || '', rankOf(res.total).name, res.total];
-    DOMAINS.forEach(d => row.push(res.radar.find(x => x.id === d.id).value));
-    row.push(res.aiLevel.lv, res.aiScaled, res.govPct ?? '', res.impPct ?? '', res.heisetsuRisk ?? '');
-    detail.forEach(q => row.push(answerLabel(q, a[q.id])));
-    return row;
-  });
-  const csv = [cols, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+function tableRow(a, createdAt) {
+  const res = scoreAll(a);
+  const ft = FTYPES.find(f => f.id === a.ftype);
+  const row = [new Date(createdAt).toLocaleDateString('ja-JP'), a.orgName || '', a.siteName || '',
+    ft ? ft.label : '', a.capacity || '', a.pref || '', rankOf(res.total).name, res.total];
+  DOMAINS.forEach(d => row.push(res.radar.find(x => x.id === d.id).value));
+  row.push(res.aiLevel.lv, res.aiScaled, res.govPct ?? '', res.impPct ?? '', res.heisetsuRisk ?? '');
+  detailQuestions().forEach(q => row.push(answerLabel(q, a[q.id])));
+  return row;
+}
+
+function exportCSV() {
+  const recs = load();
+  if (!recs.length) return alert('保存された診断がありません。');
+  const rows = recs.map(r => tableRow(r.answers, r.createdAt));
+  const csv = [tableCols(), ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\r\n');
   download('﻿' + csv, `有老経営診断_集計_${stamp()}.csv`, 'text/csv');
 }
 
@@ -387,7 +464,12 @@ function show(v) {
 }
 
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
-  if (t.dataset.v === 'result' && !validate()) return;
+  if (t.dataset.v === 'result' && !validate(false)) return;
   show(t.dataset.v);
 });
+
+$('#privacy').textContent = SUBMIT_ENDPOINT
+  ? `ご入力いただいた内容は、送信ボタンを押されるまでお使いの端末の中だけに保存されます。送信いただいた内容は、${SUBMIT_RECIPIENT}および診断担当者が本診断とそのご提案のためにのみ利用いたします。`
+  : 'ご入力いただいた内容は、このパソコンのブラウザ内にのみ保存されます。外部のサーバーへ送信されることはありません。';
+
 show('form');

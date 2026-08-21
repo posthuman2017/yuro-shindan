@@ -49,8 +49,13 @@ const QUESTIONS = [
     text: '法人名', placeholder: '例）株式会社○○' },
   { id: 'siteName', domain: null, type: 'text', section: '基本情報',
     text: '施設名', placeholder: '例）○○ガーデン' },
+  { id: 'contactName', domain: null, type: 'text', section: '基本情報',
+    text: 'ご担当者様のお名前', placeholder: '例）山田 太郎' },
   { id: 'respondent', domain: null, type: 'text', section: '基本情報',
     text: 'ご回答者様のお立場', placeholder: '例）代表取締役／施設長' },
+  { id: 'email', domain: null, type: 'text', section: '基本情報',
+    text: 'メールアドレス', placeholder: '例）info@example.co.jp',
+    help: '診断結果についてご連絡を差し上げる場合にのみ使用いたします。' },
   { id: 'pref', domain: null, type: 'text', section: '基本情報',
     text: '所在地（都道府県・市区町村）', placeholder: '例）大阪府堺市' },
 

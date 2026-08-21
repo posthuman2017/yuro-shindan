@@ -1,8 +1,10 @@
 /* 有料老人ホーム簡易経営診断 受信スクリプト（Google Apps Script）
    設置手順は README.md「回答を集める設定」を参照してください。 */
 
+/* 通知先はこのファイルではなく、Apps Script 側で書き換えてください。
+   このリポジトリは公開されているため、メールアドレスは記載しません。 */
 const NOTIFY_TO = 'CHANGE_ME@example.com';
-const NOTIFY_CC = 'posthuman2017@gmail.com';
+const NOTIFY_CC = '';
 const SHEET_NAME = '回答';
 
 function doPost(e) {
@@ -34,7 +36,7 @@ function notify_(data) {
   const name = [data.org, data.site].filter(String).join(' ') || '（法人名未記入）';
   MailApp.sendEmail({
     to: NOTIFY_TO,
-    cc: NOTIFY_CC,
+    cc: NOTIFY_CC || undefined,
     subject: '【有料老人ホーム簡易経営診断】' + name + ' 様より回答がありました',
     body: data.summary +
       '\n\n----------------------------------------\n' +

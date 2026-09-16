@@ -1,8 +1,12 @@
-/* 有料老人ホーム簡易経営診断 受信スクリプト（Google Apps Script）
-   設置手順は README.md「回答を集める設定」を参照してください。 */
+// 有料老人ホーム簡易経営診断 受信スクリプト（Google Apps Script）
+// 設置手順は README.md「回答を集める設定」を参照してください。
+//
+// このファイルは Apps Script エディタに貼り付けて使います。
+// 複数行にまたがるブロックコメントは使っていません。コピーの際に開始行が
+// 欠けると、以降の行がコードとして読まれて構文エラーになるためです。
 
-/* 通知先はこのファイルではなく、Apps Script 側で書き換えてください。
-   このリポジトリは公開されているため、メールアドレスは記載しません。 */
+// 通知先はこのファイルではなく、Apps Script 側で書き換えてください。
+// このリポジトリは公開されているため、メールアドレスは記載しません。
 const NOTIFY_TO = 'CHANGE_ME@example.com';
 const NOTIFY_CC = '';
 const SHEET_NAME = '回答';
@@ -43,8 +47,8 @@ function appendRow_(data) {
   sh.appendRow([new Date()].concat(data.row));
 }
 
-/* 集計シートを空にして作り直す（Apps Script エディタから手動で実行します）。
-   旧レイアウトのヘッダーやテスト行が残っている場合に一度だけ実行してください。 */
+// 集計シートを空にして作り直す（Apps Script エディタから手動で実行します）。
+// 旧レイアウトのヘッダーやテスト行が残っている場合に一度だけ実行してください。
 function resetSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const tmp = ss.insertSheet('__reset_tmp');      // 最後の1枚は削除できないため先に作る

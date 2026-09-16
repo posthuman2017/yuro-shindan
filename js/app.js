@@ -304,6 +304,68 @@ function renderResult() {
   $('#btnSave2').onclick = saveCurrent;
 }
 
+/* ---------- 聞き取り用 質問票（印刷） ---------- */
+function renderSheet() {
+  const sections = [];
+  // 整理番号は用紙の冒頭（記入日と並べて）に置くため、設問一覧からは除く
+  for (const q of QUESTIONS.filter(x => x.id !== 'refNo')) {
+    if (!sections.length || sections[sections.length - 1].name !== q.section) sections.push({ name: q.section, items: [] });
+    sections[sections.length - 1].items.push(q);
+  }
+
+  let html = `<div class="qsheet" id="qsheet">
+    <header class="qs-head">
+      <p class="qs-kicker">有料老人ホーム 簡易経営診断</p>
+      <h1>聞き取り用 質問票</h1>
+      <div class="qs-meta">
+        <span>記入日：<u class="w90"></u></span>
+        <span>整理番号：<u class="w90"></u></span>
+      </div>
+      <p class="qs-lead">あてはまるものに <b>■</b> を付けてください（各設問ひとつ）。数値は分かる範囲でご記入ください。<br>
+        <b>※</b> の設問は、施設種別によってはご記入不要です。設問の下の注記をご確認ください。</p>
+    </header>`;
+
+  let no = 0;
+  for (const s of sections) {
+    html += `<section class="qs-sec"><h2>${esc(s.name)}</h2>`;
+    for (const q of s.items) {
+      no++;
+      let body = '';
+      if (q.type === 'select') {
+        body = `<ul class="qs-opts">` + q.options.map(o =>
+          `<li><span class="box"></span>${esc(o.label)}</li>`).join('') + `</ul>`;
+      } else if (q.type === 'number') {
+        body = `<p class="qs-line"><u class="w120"></u> ${esc(q.unit || '')}` +
+          (q.unknownable ? `　<span class="box"></span>把握していない` : '') + `</p>`;
+      } else {
+        body = `<p class="qs-line"><u class="w220"></u></p>`;
+      }
+      html += `<div class="qs-q">
+        <div class="qs-qtext"><span class="qs-no">${no}</span>${q.note ? '<b>※</b>' : ''}${esc(q.text)}${q.unit && q.type === 'number' ? `<span class="qs-unit">（${esc(q.unit)}）</span>` : ''}</div>
+        ${q.note ? `<p class="qs-note">※ ${esc(q.note)}</p>` : ''}
+        ${body}
+      </div>`;
+    }
+    html += `</section>`;
+  }
+
+  html += `<section class="qs-sec qs-memo"><h2>聞き取りメモ（自由記入）</h2>
+      <div class="qs-memo-lines">${'<u></u>'.repeat(8)}</div>
+    </section>
+    <p class="qs-foot">本質問票は「有料老人ホーム簡易経営診断」の設問をそのまま紙面化したものです。
+      ご記入後、診断画面に同じ内容を入力すると診断結果（PDF）が出力されます。</p>
+  </div>
+
+  <div class="result-actions no-print">
+    <button class="btn primary" id="btnPrintSheet">質問票を印刷／PDFで保存</button>
+    <button class="btn" id="btnToForm">診断入力に戻る</button>
+  </div>`;
+
+  $('#view').innerHTML = html;
+  $('#btnPrintSheet').onclick = () => window.print();
+  $('#btnToForm').onclick = () => show('form');
+}
+
 /* ---------- 保存一覧・集計 ---------- */
 function renderRecords() {
   const recs = load();
@@ -438,9 +500,11 @@ function download(text, name, type) {
 /* ---------- 画面切替 ---------- */
 function show(v) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+  $('#privacy').style.display = v === 'form' ? '' : 'none';
   window.scrollTo(0, 0);
   if (v === 'form') renderForm();
   else if (v === 'result') renderResult();
+  else if (v === 'sheet') renderSheet();
   else renderRecords();
 }
 

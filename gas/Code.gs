@@ -24,12 +24,33 @@ function doGet() {
 
 function appendRow_(data) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  let sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  const header = ['受信日時'].concat(data.cols);
+
   if (sh.getLastRow() === 0) {
-    sh.appendRow(['受信日時'].concat(data.cols));
+    sh.appendRow(header);
     sh.setFrozenRows(1);
+  } else {
+    // 設問が変わるとヘッダーと列がずれるため、一致しない場合は旧シートを退避して作り直す
+    const cur = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+    if (cur.join('') !== header.join('')) {
+      sh.setName(SHEET_NAME + '_旧' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMddHHmmss'));
+      sh = ss.insertSheet(SHEET_NAME);
+      sh.appendRow(header);
+      sh.setFrozenRows(1);
+    }
   }
   sh.appendRow([new Date()].concat(data.row));
+}
+
+/* 集計シートを空にして作り直す（Apps Script エディタから手動で実行します）。
+   旧レイアウトのヘッダーやテスト行が残っている場合に一度だけ実行してください。 */
+function resetSheet() {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const tmp = ss.insertSheet('__reset_tmp');      // 最後の1枚は削除できないため先に作る
+  const sh = ss.getSheetByName(SHEET_NAME);
+  if (sh) ss.deleteSheet(sh);
+  tmp.setName(SHEET_NAME);                        // 空のシートを「回答」として使う
 }
 
 function notify_(data) {

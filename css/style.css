@@ -181,6 +181,31 @@ tr.lv-good .dt-q{border-left:3px solid var(--good);padding-left:8px}
   .bar-name{width:92px;font-size:12px}
 }
 
+/* 聞き取り用 質問票（紙） */
+.qsheet{background:#fff;border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,.08);padding:30px 32px;color:#0f172a}
+.qs-head{border-bottom:2px solid #0f172a;padding-bottom:12px;margin-bottom:18px}
+.qs-kicker{margin:0;font-size:12px;letter-spacing:.14em;color:#475569}
+.qs-head h1{margin:2px 0 10px;font-size:22px;letter-spacing:.04em}
+.qs-meta{display:flex;flex-wrap:wrap;gap:8px 26px;font-size:13px;color:#334155}
+.qs-lead{margin:12px 0 0;font-size:12.5px;line-height:1.8;color:#334155;
+  background:#f1f5f9;border:1px solid #dbe2ea;border-radius:8px;padding:10px 12px}
+.qs-sec{margin-top:22px}
+.qs-sec h2{margin:0 0 10px;font-size:15px;padding:5px 10px;background:#0f172a;color:#fff;border-radius:4px}
+.qs-q{padding:9px 0 11px;border-bottom:1px dotted #cbd5e1;break-inside:avoid}
+.qs-qtext{font-size:13.5px;font-weight:700;line-height:1.65;padding-left:30px;text-indent:-30px}
+.qs-no{display:inline-block;min-width:24px;margin-right:6px;font-weight:700;color:#475569}
+.qs-unit{font-weight:400;color:#475569}
+.qs-note{margin:3px 0 0 30px;font-size:11.5px;color:#b45309;line-height:1.6}
+.qs-opts{list-style:none;margin:6px 0 0 30px;padding:0;display:grid;gap:3px}
+.qs-opts li{font-size:12.5px;line-height:1.7}
+.qs-line{margin:8px 0 2px 30px;font-size:12.5px}
+.box{display:inline-block;width:12px;height:12px;border:1.4px solid #334155;border-radius:2px;
+  margin-right:7px;vertical-align:-1px}
+.qsheet u{display:inline-block;border-bottom:1px solid #64748b;text-decoration:none;height:1.15em;vertical-align:-2px}
+.w70{width:70px}.w90{width:90px}.w120{width:120px}.w220{width:220px}
+.qs-memo-lines u{display:block;width:100%;margin-bottom:14px}
+.qs-foot{margin-top:18px;font-size:11.5px;color:#475569;line-height:1.8}
+
 /* 印刷（PDF出力） */
 @media print{
   @page{size:A4;margin:14mm 12mm}
@@ -188,6 +213,19 @@ tr.lv-good .dt-q{border-left:3px solid var(--good);padding-left:8px}
   .no-print,.app-head,.privacy,.app-foot,#toast{display:none!important}
   main{max-width:none;padding:0}
   .report{box-shadow:none;border-radius:0;padding:0}
+  .qsheet{box-shadow:none;border-radius:0;padding:0}
+  .qsheet h1{font-size:15pt}
+  .qs-sec{break-inside:auto}
+  .qs-sec h2{font-size:11pt;break-after:avoid}
+  .qs-qtext{font-size:9.5pt;line-height:1.5}
+  .qs-opts li,.qs-line{font-size:9pt;line-height:1.55}
+  .qs-opts{gap:1px;margin-top:3px}
+  .qs-q{padding:5px 0 6px;break-inside:avoid}
+  .qs-sec{margin-top:14px}
+  .qs-note{font-size:8.5pt;color:#7c4a02;margin-top:1px}
+  .qs-lead{font-size:8.5pt;padding:7px 9px}
+  .box{width:10px;height:10px;margin-right:5px}
+  .qs-memo{break-inside:avoid}
   .report section{margin-top:16px;break-inside:avoid}
   .page-break{break-before:page}
   .rep-score,.chart-wrap,.ai-box{break-inside:avoid}

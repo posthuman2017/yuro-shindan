@@ -33,11 +33,11 @@ function appendRow_(data) {
 }
 
 function notify_(data) {
-  const name = [data.org, data.site].filter(String).join(' ') || '（法人名未記入）';
+  const name = data.ref ? '整理番号 ' + data.ref : '整理番号なし';
   MailApp.sendEmail({
     to: NOTIFY_TO,
     cc: NOTIFY_CC || undefined,
-    subject: '【有料老人ホーム簡易経営診断】' + name + ' 様より回答がありました',
+    subject: '【有料老人ホーム簡易経営診断】回答1件（' + name + '）',
     body: data.summary +
       '\n\n----------------------------------------\n' +
       '全回答は集計シートに追記されています。\n' +

@@ -34,12 +34,9 @@ function mailSummary(res) {
   const ft = FTYPES.find(f => f.id === answers.ftype);
   const rank = rankOf(res.total);
   const L = [];
-  L.push(`法人名　　：${answers.orgName || '（未記入）'}`);
-  L.push(`施設名　　：${answers.siteName || '（未記入）'}`);
-  L.push(`ご担当者　：${answers.contactName || '（未記入）'}（${answers.respondent || '—'}）`);
-  L.push(`ご連絡先　：${answers.email || '（未記入）'}`);
-  L.push(`所在地　　：${answers.pref || '—'}`);
+  L.push(`整理番号　：${answers.refNo || '（未記入）'}`);
   L.push(`施設種別　：${ft ? ft.label : '—'}${answers.capacity ? ' / 定員 ' + answers.capacity + '名' : ''}`);
+  if (answers.openYear) L.push(`開設年　　：${answers.openYear}年`);
   L.push('');
   L.push(`総合評価　：${rank.name}（${rank.title}）　総合スコア ${res.total}`);
   L.push('領域別　　：' + res.radar.map(r => `${r.name} ${r.value}`).join(' / '));
@@ -60,7 +57,7 @@ async function submitAnswers() {
       cols: tableCols(),
       row: tableRow(answers, Date.now()),
       summary: mailSummary(scoreAll(answers)),
-      org: answers.orgName || '', site: answers.siteName || '',
+      ref: answers.refNo || '',
     }),
   });
   const data = await res.json();
@@ -89,9 +86,6 @@ function renderForm() {
     html += `</section>`;
   }
   html += `<div class="form-actions">
-      ${SUBMIT_ENDPOINT ? `<label class="consent"><input type="checkbox" id="consent">
-        ご入力内容を${esc(SUBMIT_RECIPIENT)}および診断担当者へ送信することに同意します。
-        いただいた情報は、本診断の実施とその結果に基づくご提案のためにのみ利用いたします。</label>` : ''}
       <button class="btn primary" id="btnResult">${SUBMIT_ENDPOINT ? '回答を送信して診断結果を見る' : '診断結果を見る'}</button>
       <button class="btn" id="btnSave">この回答を保存</button>
       <button class="btn ghost" id="btnClear">入力をクリア</button>
@@ -152,8 +146,6 @@ function onInput(ev) {
 async function onSubmitClick(ev) {
   if (!validate(true)) return;
   if (!SUBMIT_ENDPOINT) return show('result');
-  const c = $('#consent');
-  if (!c.checked) { alert('送信への同意にチェックをお願いいたします。'); c.focus(); return; }
 
   const btn = ev.currentTarget, label = btn.textContent;
   btn.disabled = true; btn.textContent = '送信しています…';
@@ -175,17 +167,6 @@ function updateProgress() {
 }
 
 function validate(forSubmit) {
-  if (forSubmit && SUBMIT_ENDPOINT) {
-    const need = [['orgName', '法人名'], ['siteName', '施設名'], ['contactName', 'ご担当者様のお名前'], ['email', 'メールアドレス']];
-    for (const [id, name] of need) {
-      if (!String(answers[id] || '').trim()) {
-        alert(`${name}をご記入ください。`); $('#q-' + id).scrollIntoView({ block: 'center' }); return false;
-      }
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email)) {
-      alert('メールアドレスの形式をご確認ください。'); $('#q-email').scrollIntoView({ block: 'center' }); return false;
-    }
-  }
   if (!answers.ftype) { alert('施設種別をお選びください。'); $('#q-ftype').scrollIntoView({ block: 'center' }); return false; }
   const scored = visibleQuestions(answers).filter(q => q.domain !== null);
   const done = scored.filter(q => answers[q.id] !== undefined && answers[q.id] !== '').length;
@@ -208,13 +189,13 @@ function renderResult() {
     <header class="rep-head">
       <div>
         <p class="rep-kicker">有料老人ホーム 簡易経営診断</p>
-        <h1>${esc(answers.orgName || '')} ${esc(answers.siteName || '')} 様<br><span class="rep-sub">経営診断・アドバイスシート</span></h1>
+        <h1><span class="rep-name"></span><br><span class="rep-sub">経営診断・アドバイスシート</span></h1>
       </div>
       <div class="rep-meta">
         <div>診断日：${today}</div>
         <div>施設種別：${esc(ft ? ft.label : '—')}</div>
         ${answers.capacity ? `<div>定員：${esc(answers.capacity)}名</div>` : ''}
-        ${answers.pref ? `<div>所在地：${esc(answers.pref)}</div>` : ''}
+        ${answers.refNo ? `<div>整理番号：${esc(answers.refNo)}</div>` : ''}
       </div>
     </header>
 
@@ -338,13 +319,13 @@ function renderRecords() {
     html += `<p class="note">まだ保存された診断はありません。</p></section>`;
     $('#view').innerHTML = html;
   } else {
-    html += `<table class="rec"><thead><tr><th>診断日</th><th>法人・施設</th><th>種別</th><th>定員</th><th>総合</th><th>AI</th><th></th></tr></thead><tbody>`;
+    html += `<table class="rec"><thead><tr><th>診断日</th><th>整理番号</th><th>種別</th><th>定員</th><th>総合</th><th>AI</th><th></th></tr></thead><tbody>`;
     for (const r of recs.slice().reverse()) {
       const res = scoreAll(r.answers);
       const ft = FTYPES.find(f => f.id === r.answers.ftype);
       html += `<tr>
         <td>${new Date(r.createdAt).toLocaleDateString('ja-JP')}</td>
-        <td>${esc(r.answers.orgName || '')} ${esc(r.answers.siteName || '')}</td>
+        <td>${esc(r.answers.refNo || '—')}</td>
         <td>${esc(ft ? ft.label.replace(/（.*/, '') : '—')}</td>
         <td>${esc(r.answers.capacity || '')}</td>
         <td><b>${rankOf(res.total).name}</b> ${res.total}</td>
@@ -393,11 +374,11 @@ function answerLabel(q, a) {
   return a;
 }
 
-const HEAD_IDS = ['orgName', 'siteName', 'ftype', 'capacity', 'pref'];
+const HEAD_IDS = ['refNo', 'ftype', 'capacity'];
 const detailQuestions = () => QUESTIONS.filter(q => !HEAD_IDS.includes(q.id));
 
 function tableCols() {
-  const cols = ['診断日', '法人名', '施設名', '施設種別', '定員', '所在地', '総合評価', '総合スコア'];
+  const cols = ['診断日', '整理番号', '施設種別', '定員', '総合評価', '総合スコア'];
   DOMAINS.forEach(d => cols.push(d.name));
   cols.push('生成AIレベル', '生成AI点数', 'AIガバナンス', 'AI実装', '併設リスク指数');
   detailQuestions().forEach(q => cols.push(q.text.slice(0, 30)));
@@ -407,8 +388,8 @@ function tableCols() {
 function tableRow(a, createdAt) {
   const res = scoreAll(a);
   const ft = FTYPES.find(f => f.id === a.ftype);
-  const row = [new Date(createdAt).toLocaleDateString('ja-JP'), a.orgName || '', a.siteName || '',
-    ft ? ft.label : '', a.capacity || '', a.pref || '', rankOf(res.total).name, res.total];
+  const row = [new Date(createdAt).toLocaleDateString('ja-JP'), a.refNo || '',
+    ft ? ft.label : '', a.capacity || '', rankOf(res.total).name, res.total];
   DOMAINS.forEach(d => row.push(res.radar.find(x => x.id === d.id).value));
   row.push(res.aiLevel.lv, res.aiScaled, res.govPct ?? '', res.impPct ?? '', res.heisetsuRisk ?? '');
   detailQuestions().forEach(q => row.push(answerLabel(q, a[q.id])));
@@ -469,7 +450,7 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
 });
 
 $('#privacy').textContent = SUBMIT_ENDPOINT
-  ? `ご入力いただいた内容は、送信ボタンを押されるまでお使いの端末の中だけに保存されます。送信いただいた内容は、${SUBMIT_RECIPIENT}および診断担当者が本診断とそのご提案のためにのみ利用いたします。`
+  ? `本フォームでは法人名・施設名・氏名・連絡先を入力しません。送信ボタンを押すと、施設種別と各設問への回答が${SUBMIT_RECIPIENT}の集計表に記録されます。`
   : 'ご入力いただいた内容は、このパソコンのブラウザ内にのみ保存されます。外部のサーバーへ送信されることはありません。';
 
 show('form');
